@@ -1,0 +1,164 @@
+<template>
+  <div class="p-4 sm:ml-64">
+    <center>
+    <div style="width: 80%">
+      <br /><br />
+      <center>
+        <button
+          v-if="cameraOpen === false"
+          @click="bukaKamera"
+          style="width: 64%"
+          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Buka Kamera
+        </button>
+        <button
+          v-else
+          style="width: 64%"
+          @click="tutupKamera"
+          class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Tutup Kamera
+        </button>
+        <br /><br />
+        <img
+          v-if="ulangis === false"
+          style="transform: scaleX(-1)"
+          :src="imgSrc"
+        />
+        <img v-else :src="imgSrc" style="transform: scaleX(-1)" /><br />
+        <div v-if="cameraOpen == true">
+          <video
+            v-if="cameras == true"
+            ref="videoElement"
+            autoplay
+            style="border-radius: 20px; transform: scaleX(-1)"
+          ></video>
+        </div>
+        <br />
+        <span v-if="cameras == true">
+          <button
+            v-if="ambilscrinsut == true"
+            @click="ulangi"
+            style="width: 32%"
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+             Ulangi
+          </button>
+          <button
+            v-if="ambilscrinsut == true"
+            @click="kirim"
+            style="width: 32%"
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+             kirim
+          </button>
+        </span>
+
+        <div v-if="cameras == true">
+          <span>
+            <button
+              v-if="ambilscrinsut == false"
+              @click="ambilScreenshot"
+              style="width: 32%"
+              class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Ambil Screenshot
+            </button>
+            &nbsp;
+          </span>
+        </div>
+      </center>
+    </div>
+  </center>
+  </div>
+</template>
+<script>
+import { mapActions, mapState } from "vuex";
+import { onMounted } from "vue";
+export default{
+  data() {
+    return {
+      stream: null,
+      cameras: false,
+      imgSrc: null,
+      cameraOpen: false,
+      ulangis: false,
+      ambilscrinsut: false,
+
+      camera:{
+         foto:null,
+         id_hari:null,
+      }
+
+    };
+  },
+    setup(props, context) {
+    onMounted(() => {
+      try {
+        context.emit("id-menu", "siswa");
+        context.emit("id-siswa", 102);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+  },
+  methods: {
+    ...mapActions('absensi',['fectabsensiswa']),
+    kirim(){
+        // this.fectabsensiswa(this.camera);
+    },
+    bukaKamera() {
+      const currentTime = new Date();
+      const startHour = 6;
+      const endHour = 7;
+      if (currentTime.getHours() >= startHour && currentTime.getHours() < endHour) {
+        this.cameraOpen = true;
+        this.imgSrc = null;
+        this.cameras = true;
+        this.cameraOpen = true;
+           navigator.mediaDevices
+                 .getUserMedia({ video: true })
+                 .then((stream) => {
+                   this.stream = stream;
+                   this.$refs.videoElement.srcObject = stream;
+                 })
+            .catch((error) => {
+         alert("Error accessing camera:", error);
+        });
+      } else {
+        alert('The camera can only be opened at 6 - 7, otherwise you dont have any information');
+      }
+    },
+    tutupKamera() {
+      if (this.stream) {
+        this.stream.getTracks().forEach((track) => track.stop());
+        this.$refs.videoElement.srcObject = null;
+      }
+      this.cameraOpen = false;
+      this.cameras = false;
+    },
+    ambilScreenshot() {
+      const video = this.$refs.videoElement;
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext("2d");
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataURL = canvas.toDataURL("image/png");
+      this.camera.foto = dataURL 
+      console.log(dataURL)
+      this.imgSrc = dataURL;
+      this.tutupKamera();
+      this.cameras = true;
+      this.ambilscrinsut = true;
+    },
+    ulangi() {
+      this.imgSrc = null; // Menghapus gambar yang ada
+      this.bukaKamera();
+      this.ulangis = true;
+      this.ambilscrinsut = false;
+    },
+  },
+}
+</script>
